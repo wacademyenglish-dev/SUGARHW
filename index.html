@@ -1,0 +1,536 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>WOLF LABS | Homework: Sweet Deception (C1)</title>
+    
+    <!-- Premium Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@700;800;900&family=Inter:wght@300;400;500;600;700;800&family=Fira+Code:wght@400;500;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    fontFamily: { display: ['Montserrat', 'sans-serif'], body: ['Inter', 'sans-serif'], code: ['Fira Code', 'monospace'] },
+                    colors: { 
+                        brand: '#d946ef', /* Fuchsia/Neon Pink */
+                        accent: '#06b6d4', /* Cyan */
+                        gold: '#FBBF24',
+                        correct: '#10b981', 
+                        incorrect: '#ef4444',
+                        darkBase: '#09090b',
+                        darkCard: 'rgba(24, 24, 27, 0.7)',
+                        textDim: '#a3a3a3'
+                    }
+                }
+            }
+        }
+    </script>
+
+    <style>
+        :root {
+            --brand-main: #d946ef; 
+            --accent: #06b6d4; 
+            --correct: #10b981;
+            --incorrect: #ef4444;
+        }
+
+        * { margin: 0; padding: 0; box-sizing: border-box; -webkit-tap-highlight-color: transparent; outline: none; }
+        
+        body {
+            background-color: #09090b;
+            color: #f8fafc;
+            font-family: 'Inter', sans-serif;
+            overflow-x: hidden;
+            min-height: 100vh;
+        }
+
+        /* BACKGROUND MESH */
+        .mesh-bg { position: fixed; inset: 0; z-index: -3; overflow: hidden; background: #09090b; }
+        .blob { position: absolute; border-radius: 50%; filter: blur(100px); opacity: 0.35; mix-blend-mode: screen; animation: float 20s infinite alternate ease-in-out; }
+        .blob-1 { background: var(--brand-main); width: 60vw; height: 60vw; top: -10%; left: -20%; }
+        .blob-2 { background: var(--accent); width: 70vw; height: 70vw; bottom: -20%; right: -20%; animation-delay: -5s; }
+        
+        @keyframes float {
+            0% { transform: translate(0, 0) scale(1); }
+            100% { transform: translate(5vw, 10vh) scale(1.1); }
+        }
+
+        .noise { position: fixed; inset: 0; z-index: -2; opacity: 0.2; pointer-events: none; background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noiseFilter'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.8' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noiseFilter)' opacity='0.15'/%3E%3C/svg%3E"); }
+
+        /* GLASS COMPONENTS */
+        .glass { background: var(--darkCard); backdrop-filter: blur(20px); border: 1px solid rgba(255,255,255,0.1); box-shadow: 0 10px 30px rgba(0,0,0,0.5); }
+        
+        /* ANIMATIONS */
+        .fade-in { animation: fadeIn 0.4s ease-out forwards; }
+        .slide-up { animation: slideUp 0.5s cubic-bezier(0.16, 1, 0.3, 1) forwards; }
+        .pop-in { animation: popIn 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards; }
+        .shake { animation: shake 0.4s ease-in-out; }
+
+        @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+        @keyframes slideUp { from { opacity: 0; transform: translateY(30px); } to { opacity: 1; transform: translateY(0); } }
+        @keyframes popIn { 0% { opacity: 0; transform: scale(0.95); } 100% { opacity: 1; transform: scale(1); } }
+        @keyframes shake { 0%, 100% {transform: translateX(0);} 25% {transform: translateX(-6px);} 75% {transform: translateX(6px);} }
+
+        /* BUTTONS */
+        .opt-btn { 
+            width: 100%; text-align: left; padding: 18px 20px; border-radius: 16px; 
+            background: rgba(255,255,255,0.03); border: 2px solid rgba(255,255,255,0.1); 
+            font-weight: 500; font-size: 1.05rem; transition: all 0.2s; 
+            display: flex; align-items: center; gap: 15px; cursor: pointer;
+        }
+        .opt-btn:hover:not(:disabled) { background: rgba(255,255,255,0.08); border-color: var(--brand-main); transform: translateY(-2px); }
+        .opt-btn:disabled { cursor: default; }
+        
+        .opt-btn.correct { background: rgba(16, 185, 129, 0.15); border-color: var(--correct); color: #fff; }
+        .opt-btn.incorrect { background: rgba(239, 68, 68, 0.15); border-color: var(--incorrect); color: #fff; opacity: 0.7;}
+        .opt-btn.dimmed { opacity: 0.4; }
+
+        .btn-action {
+            background: var(--brand-main); color: #fff; font-family: var(--font-display); font-weight: 800; text-transform: uppercase;
+            padding: 16px 30px; border-radius: 50px; width: 100%; letter-spacing: 1px; transition: 0.3s;
+            box-shadow: 0 10px 25px rgba(217, 70, 239, 0.4); border: 1px solid rgba(255,255,255,0.2);
+        }
+        .btn-action:hover { transform: translateY(-3px); box-shadow: 0 15px 35px rgba(217, 70, 239, 0.6); filter: brightness(1.1); }
+
+        /* PROGRESS BAR */
+        .progress-container { width: 100%; height: 6px; background: rgba(255,255,255,0.1); border-radius: 10px; overflow: hidden; }
+        .progress-bar { height: 100%; background: var(--accent); transition: width 0.4s ease; box-shadow: 0 0 10px var(--accent); }
+
+        /* CUSTOM SCROLLBAR */
+        ::-webkit-scrollbar { width: 6px; }
+        ::-webkit-scrollbar-track { background: transparent; }
+        ::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.2); border-radius: 10px; }
+    </style>
+</head>
+<body class="antialiased">
+
+    <!-- BACKGROUNDS -->
+    <div class="mesh-bg">
+        <div class="blob blob-1"></div>
+        <div class="blob blob-2"></div>
+    </div>
+    <div class="noise"></div>
+
+    <!-- HEADER -->
+    <header class="fixed top-0 w-full p-4 z-50 glass border-b-0 border-white/5 rounded-b-3xl">
+        <div class="max-w-3xl mx-auto flex justify-between items-center">
+            <div class="flex items-center gap-3">
+                <i class="fa-solid fa-flask text-brand text-2xl drop-shadow-[0_0_10px_rgba(217,70,239,0.8)]"></i>
+                <div class="flex flex-col">
+                    <span class="font-display font-black text-sm tracking-widest uppercase">Wolf Labs</span>
+                    <span class="text-[0.65rem] text-textDim tracking-widest">Homework System</span>
+                </div>
+            </div>
+            <div class="bg-black/50 border border-white/10 px-4 py-1.5 rounded-full flex items-center gap-2">
+                <i class="fa-solid fa-star text-gold text-xs"></i>
+                <span id="xp-display" class="font-code font-bold text-sm text-white">0 XP</span>
+            </div>
+        </div>
+    </header>
+
+    <!-- MAIN WRAPPER -->
+    <main class="pt-24 pb-10 px-4 min-h-screen flex flex-col items-center justify-center max-w-2xl mx-auto w-full">
+
+        <!-- SCREEN: START -->
+        <div id="screen-start" class="w-full text-center slide-up flex flex-col items-center">
+            <div class="w-24 h-24 rounded-3xl bg-black/50 border border-brand shadow-[0_0_40px_rgba(217,70,239,0.3)] flex items-center justify-center mb-6">
+                <i class="fa-solid fa-brain text-5xl text-brand"></i>
+            </div>
+            <span class="bg-accent/20 text-accent border border-accent/30 px-3 py-1 rounded-full text-xs font-bold tracking-widest mb-4">MÓDULO C1</span>
+            <h1 class="font-display text-4xl md:text-5xl font-black uppercase tracking-tight mb-2 text-white">Sweet Deception</h1>
+            <p class="text-textDim text-lg mb-10">15 Advanced Challenges to solidify your Masterclass knowledge.</p>
+            
+            <div class="glass w-full p-8 rounded-3xl text-left border-t-4 border-brand">
+                <p class="font-bold text-sm text-textDim uppercase tracking-widest mb-4"><i class="fa-solid fa-user-astronaut mr-2"></i> Identificação</p>
+                <input type="text" id="student-name" placeholder="Enter your name..." class="w-full bg-black/60 border border-white/20 p-4 rounded-xl text-white font-medium text-lg focus:border-brand focus:ring-1 focus:ring-brand outline-none transition-all mb-8 shadow-inner">
+                <button onclick="startQuiz()" class="btn-action">Start Mission</button>
+            </div>
+        </div>
+
+        <!-- SCREEN: QUIZ -->
+        <div id="screen-quiz" class="w-full hidden flex-col w-full">
+            
+            <!-- Progress -->
+            <div class="mb-8 w-full">
+                <div class="flex justify-between items-end mb-2">
+                    <span class="font-display font-bold text-sm text-textDim uppercase tracking-widest">Challenge <span id="q-current" class="text-white">1</span>/<span id="q-total">15</span></span>
+                    <span class="text-xs font-code text-accent" id="progress-pct">0%</span>
+                </div>
+                <div class="progress-container">
+                    <div id="progress-bar" class="progress-bar" style="width: 0%;"></div>
+                </div>
+            </div>
+
+            <!-- Question Card -->
+            <div class="glass w-full p-6 md:p-10 rounded-3xl relative border-t-4 border-accent shadow-2xl" id="question-card">
+                <div class="bg-accent/10 text-accent text-xs font-bold px-3 py-1 inline-block rounded-md mb-4 uppercase tracking-widest" id="q-category">Vocabulary</div>
+                <h2 id="q-text" class="text-xl md:text-2xl font-semibold leading-relaxed mb-8 text-white">Question text goes here...</h2>
+                
+                <!-- Options -->
+                <div class="flex flex-col gap-3" id="options-container">
+                    <!-- Buttons injected via JS -->
+                </div>
+
+                <!-- Explanation / Feedback Box (Hidden initially) -->
+                <div id="feedback-box" class="hidden mt-6 p-5 rounded-2xl bg-black/60 border border-white/10 pop-in">
+                    <div class="flex items-center gap-3 mb-2">
+                        <i id="feedback-icon" class="fa-solid text-xl"></i>
+                        <span id="feedback-title" class="font-bold text-lg font-display tracking-wide">Feedback</span>
+                    </div>
+                    <p id="feedback-text" class="text-textDim text-sm leading-relaxed mb-6">Explanation goes here.</p>
+                    <button onclick="nextQuestion()" class="btn-action w-full py-3 text-sm">Next Challenge <i class="fa-solid fa-arrow-right ml-2"></i></button>
+                </div>
+            </div>
+        </div>
+
+        <!-- SCREEN: RESULTS -->
+        <div id="screen-results" class="w-full hidden text-center flex-col items-center">
+            <i id="result-icon" class="fa-solid fa-trophy text-8xl text-gold mb-6 drop-shadow-[0_0_30px_rgba(251,191,36,0.6)]"></i>
+            <h1 class="font-display text-4xl md:text-5xl font-black uppercase mb-2 text-white">Mission Complete</h1>
+            <p class="text-xl text-textDim mb-10">Agent <span id="res-name" class="font-bold text-white"></span></p>
+            
+            <div class="glass w-full p-8 rounded-3xl border-t-4 border-brand shadow-2xl flex flex-col gap-6 mb-8">
+                <div class="grid grid-cols-2 gap-4">
+                    <div class="bg-black/40 border border-white/10 p-4 rounded-2xl">
+                        <p class="text-xs text-textDim uppercase tracking-widest font-bold mb-1">Final Score</p>
+                        <p class="font-display font-black text-3xl text-white"><span id="res-score">15</span><span class="text-lg text-textDim">/15</span></p>
+                    </div>
+                    <div class="bg-black/40 border border-white/10 p-4 rounded-2xl">
+                        <p class="text-xs text-textDim uppercase tracking-widest font-bold mb-1">Total XP</p>
+                        <p class="font-display font-black text-3xl text-gold" id="res-xp">1500</p>
+                    </div>
+                </div>
+                
+                <div class="bg-white/5 border border-white/10 p-5 rounded-2xl text-left">
+                    <p class="text-xs text-brand uppercase tracking-widest font-bold mb-2"><i class="fa-solid fa-chart-line mr-2"></i> Teacher's Evaluation</p>
+                    <p id="res-eval" class="text-white text-md font-medium leading-relaxed">Evaluation text based on score.</p>
+                </div>
+            </div>
+
+            <button onclick="location.reload()" class="text-textDim hover:text-white font-bold tracking-widest uppercase text-sm border-b border-transparent hover:border-white transition-all pb-1">Return to Base (Restart)</button>
+        </div>
+
+    </main>
+
+    <script>
+        // --- QUIZ DATA (15 C1-Level Exercises) ---
+        const quizData = [
+            {
+                category: "Vocabulary // Collocations",
+                q: "After a long, stressful day at work, I often find myself ________ high-calorie foods like chocolate or pizza.",
+                options: ["starving", "craving", "desiring", "famishing"],
+                correct: 1,
+                explanation: "To 'crave' means to feel a powerful, almost uncontrollable desire for something, particularly specific foods or substances."
+            },
+            {
+                category: "Vocabulary // Advanced Adjectives",
+                q: "Added sugars have become so ________ in the modern Western diet that it's difficult to find processed foods without them.",
+                options: ["scarce", "transient", "ubiquitous", "elusive"],
+                correct: 2,
+                explanation: "'Ubiquitous' describes something that is present, appearing, or found everywhere (omnipresent)."
+            },
+            {
+                category: "Vocabulary // Idioms",
+                q: "In the 1960s, the food industry allegedly tried to ________ the blame for the obesity epidemic onto consumers' lack of exercise.",
+                options: ["move", "throw", "transfer", "shift"],
+                correct: 3,
+                explanation: "The correct idiom is 'to shift the blame' onto someone else, meaning to make someone else responsible for a fault or problem."
+            },
+            {
+                category: "Grammar // Dependent Prepositions",
+                q: "Children are particularly ________ to vibrant packaging and misleading health claims on cereal boxes.",
+                options: ["susceptible", "skeptical", "invincible", "prone"],
+                correct: 0,
+                explanation: "'Susceptible' (followed by 'to') means likely or liable to be influenced or harmed by a particular thing."
+            },
+            {
+                category: "Vocabulary // Idioms",
+                q: "I've always had a ________, which makes it incredibly hard to resist desserts after dinner.",
+                options: ["sugar mouth", "sweet tooth", "candy tongue", "sweet taste"],
+                correct: 1,
+                explanation: "To have a 'sweet tooth' is an established English idiom meaning you have a strong preference or craving for sweet foods."
+            },
+            {
+                category: "Comprehension // Neuroscience",
+                q: "According to the masterclass, what is the primary function of dopamine when we consume sugary foods?",
+                options: ["It acts as a strong sedative.", "It flushes the brain with a survival reward signal.", "It regulates blood sugar levels immediately.", "It repairs cellular damage in the taste buds."],
+                correct: 1,
+                explanation: "Dopamine is a neurotransmitter that acts as a reward mechanism. Historically, it rewarded our ancestors for finding rare, calorie-dense foods essential for survival."
+            },
+            {
+                category: "Comprehension // Evolutionary Biology",
+                q: "Why did our ancestors develop a biological preference for sweet tastes in the wild?",
+                options: ["To avoid poisonous plants.", "To signal a quick, safe, and easily digestible energy source.", "To build long-term muscle mass.", "To preserve food for the winter months."],
+                correct: 1,
+                explanation: "In nature, sweet tastes usually indicate safe carbohydrates (like fruit), providing quick energy crucial for survival in scarce environments."
+            },
+            {
+                category: "Syntax // Rhetorical Devices",
+                q: "Which rhetorical device is used in the phrase: 'I'm not saying it's a conspiracy, but I'm not NOT saying that either'?",
+                options: ["Hyperbole", "Passive voice", "Double negative (Hedging)", "Metaphor"],
+                correct: 2,
+                explanation: "Using a double negative ('not not saying') is a hedging device used by advanced speakers to soften a statement, introduce irony, or suggest something indirectly."
+            },
+            {
+                category: "Grammar // Dependent Prepositions",
+                q: "Fill in the correct preposition: Pleasurable experiences flush the brain ________ dopamine.",
+                options: ["of", "in", "by", "with"],
+                correct: 3,
+                explanation: "The verb 'to flush' in this context pairs with 'with'. E.g., 'Flush the system with water' or 'Flush the brain with dopamine'."
+            },
+            {
+                category: "Comprehension // Biology",
+                q: "What happens to the brain's reward system if you eat the exact same healthy salad every single day?",
+                options: ["It amplifies the dopamine release.", "The reward response fades due to neurological boredom.", "The brain becomes severely addicted to the salad.", "It completely rewires the taste receptors within a week."],
+                correct: 1,
+                explanation: "The brain seeks dietary variety. Over time, the dopamine reward for the same repetitive healthy food fades, unlike highly engineered sugary foods which continuously trigger it."
+            },
+            {
+                category: "Comprehension // History",
+                q: "In the context of the documentary, what deceptive tactic did the sugar industry allegedly employ in the 1960s?",
+                options: ["They banned artificial sweeteners entirely.", "They paid scientists to downplay sugar's risks and highlight fat.", "They increased sugar prices globally to limit consumption.", "They lobbied for much clearer nutrition labels on packaging."],
+                correct: 1,
+                explanation: "Historical documents revealed that the sugar industry funded research that downplayed the risks of sugar and shifted the blame for heart disease onto saturated fats."
+            },
+            {
+                category: "Syntax // C1 Phrasing",
+                q: "Choose the most natural C1 phrasing: 'It's ________ that our brains reward us for finding calorie-dense foods.'",
+                options: ["without a surprise", "not a surprise", "no surprise", "zero surprising"],
+                correct: 2,
+                explanation: "The phrase 'It is no surprise that...' is the standard, most natural C1-level collocation for expressing that something is entirely expected."
+            },
+            {
+                category: "Vocabulary // Phrasal Verbs",
+                q: "If an expert says sugar 'sneaks into' your diet, what exactly do they mean?",
+                options: ["It is consumed illegally or against regulations.", "It is included secretly, often hidden in savory processed foods.", "It is advertised heavily on television and social media.", "It is aggressively forced upon consumers by doctors."],
+                correct: 1,
+                explanation: "To 'sneak into' means to enter secretly or unnoticed. Much of modern sugar intake comes from hidden sugars in savory items like bread, sauces, and dressings."
+            },
+            {
+                category: "Syntax // Discourse Markers",
+                q: "Which of these is the most advanced, natural way to introduce an honest, potentially controversial opinion?",
+                options: ["To be perfectly honest, I would say that...", "I think that...", "In my mind it is...", "For me, the sugar is..."],
+                correct: 0,
+                explanation: "'To be perfectly honest...' is an excellent C1 discourse marker used to gracefully introduce a frank or contrarian perspective."
+            },
+            {
+                category: "Comprehension // Global Meaning",
+                q: "What is the central thesis of the 'Sweet Deception' masterclass?",
+                options: ["Sugar should be criminalized immediately worldwide.", "Willpower is the only factor determining modern dietary choices.", "Sugar exploits our evolutionary survival mechanisms, acting similarly to a drug.", "The food industry is entirely innocent of any manipulation."],
+                correct: 2,
+                explanation: "The core thesis connects evolutionary biology (the survival need for calories) with modern neuroscience (dopamine hacking) to explain why sugar acts like a mild drug."
+            }
+        ];
+
+        // --- STATE VARIABLES ---
+        let studentName = "";
+        let currentQuestion = 0;
+        let score = 0;
+        let xp = 0;
+
+        // --- AUDIO SOUNDS (Generated via Web Audio API for a premium feel without external assets) ---
+        const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+        function playSound(type) {
+            if(audioCtx.state === 'suspended') audioCtx.resume();
+            const osc = audioCtx.createOscillator();
+            const gain = audioCtx.createGain();
+            osc.connect(gain);
+            gain.connect(audioCtx.destination);
+
+            if (type === 'correct') {
+                osc.type = 'sine';
+                osc.frequency.setValueAtTime(523.25, audioCtx.currentTime); // C5
+                osc.frequency.exponentialRampToValueAtTime(880, audioCtx.currentTime + 0.1); // A5
+                gain.gain.setValueAtTime(0.3, audioCtx.currentTime);
+                gain.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.5);
+                osc.start(); osc.stop(audioCtx.currentTime + 0.5);
+            } else if (type === 'incorrect') {
+                osc.type = 'sawtooth';
+                osc.frequency.setValueAtTime(150, audioCtx.currentTime);
+                osc.frequency.exponentialRampToValueAtTime(100, audioCtx.currentTime + 0.2);
+                gain.gain.setValueAtTime(0.3, audioCtx.currentTime);
+                gain.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.3);
+                osc.start(); osc.stop(audioCtx.currentTime + 0.3);
+            } else if (type === 'click') {
+                osc.type = 'sine';
+                osc.frequency.setValueAtTime(600, audioCtx.currentTime);
+                gain.gain.setValueAtTime(0.1, audioCtx.currentTime);
+                gain.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.1);
+                osc.start(); osc.stop(audioCtx.currentTime + 0.1);
+            }
+        }
+
+        // --- CORE FUNCTIONS ---
+        function startQuiz() {
+            const input = document.getElementById('student-name').value.trim();
+            studentName = input || "Agent WOLF";
+            playSound('click');
+            
+            document.getElementById('screen-start').classList.add('hidden');
+            document.getElementById('screen-quiz').classList.remove('hidden');
+            document.getElementById('screen-quiz').classList.add('flex');
+            
+            renderQuestion();
+        }
+
+        function updateProgress() {
+            const pct = ((currentQuestion) / quizData.length) * 100;
+            document.getElementById('progress-bar').style.width = `${pct}%`;
+            document.getElementById('progress-pct').innerText = `${Math.round(pct)}%`;
+            document.getElementById('q-current').innerText = currentQuestion + 1;
+            document.getElementById('q-total').innerText = quizData.length;
+        }
+
+        function renderQuestion() {
+            const qData = quizData[currentQuestion];
+            const card = document.getElementById('question-card');
+            
+            // Reset animations
+            card.classList.remove('slide-up');
+            void card.offsetWidth; // trigger reflow
+            card.classList.add('slide-up');
+            
+            document.getElementById('q-category').innerText = qData.category;
+            document.getElementById('q-text').innerText = qData.q;
+            
+            const optsContainer = document.getElementById('options-container');
+            optsContainer.innerHTML = '';
+            
+            const letters = ['A', 'B', 'C', 'D'];
+            
+            qData.options.forEach((opt, index) => {
+                const btn = document.createElement('button');
+                btn.className = 'opt-btn group';
+                btn.innerHTML = `
+                    <div class="w-8 h-8 rounded-lg bg-white/10 flex items-center justify-center font-display font-bold text-sm text-textDim group-hover:bg-brand group-hover:text-white transition-colors">${letters[index]}</div>
+                    <span class="flex-1">${opt}</span>
+                    <i class="fa-solid fa-circle-check opacity-0 text-xl transition-opacity status-icon"></i>
+                `;
+                btn.onclick = () => selectOption(index, btn);
+                optsContainer.appendChild(btn);
+            });
+
+            document.getElementById('feedback-box').classList.add('hidden');
+            updateProgress();
+        }
+
+        function selectOption(selectedIndex, btnElement) {
+            const qData = quizData[currentQuestion];
+            const isCorrect = (selectedIndex === qData.correct);
+            const allBtns = document.querySelectorAll('.opt-btn');
+
+            // Disable all buttons
+            allBtns.forEach((btn, idx) => {
+                btn.disabled = true;
+                if(idx === qData.correct) {
+                    // Highlight correct answer
+                    btn.classList.add('correct');
+                    btn.querySelector('.status-icon').classList.replace('fa-circle-check', 'fa-check-circle');
+                    btn.querySelector('.status-icon').classList.remove('opacity-0');
+                    btn.querySelector('.w-8').classList.replace('bg-white/10', 'bg-correct');
+                    btn.querySelector('.w-8').classList.replace('text-textDim', 'text-white');
+                } else if(idx === selectedIndex && !isCorrect) {
+                    // Highlight wrong answer if selected
+                    btn.classList.add('incorrect', 'shake');
+                    btn.querySelector('.status-icon').classList.replace('fa-circle-check', 'fa-times-circle');
+                    btn.querySelector('.status-icon').classList.remove('opacity-0');
+                    btn.querySelector('.w-8').classList.replace('bg-white/10', 'bg-incorrect');
+                    btn.querySelector('.w-8').classList.replace('text-textDim', 'text-white');
+                } else {
+                    btn.classList.add('dimmed');
+                }
+            });
+
+            const feedbackBox = document.getElementById('feedback-box');
+            const feedbackIcon = document.getElementById('feedback-icon');
+            const feedbackTitle = document.getElementById('feedback-title');
+            
+            if(isCorrect) {
+                playSound('correct');
+                score++;
+                xp += 100;
+                document.getElementById('xp-display').innerText = `${xp} XP`;
+                document.getElementById('xp-display').parentElement.classList.add('pop-in');
+                setTimeout(()=> document.getElementById('xp-display').parentElement.classList.remove('pop-in'), 300);
+                
+                feedbackBox.style.borderColor = 'var(--correct)';
+                feedbackIcon.className = 'fa-solid fa-shield-check text-correct text-xl';
+                feedbackTitle.innerText = "Target Acquired";
+                feedbackTitle.className = 'font-bold text-lg font-display tracking-wide text-correct uppercase';
+            } else {
+                playSound('incorrect');
+                feedbackBox.style.borderColor = 'var(--incorrect)';
+                feedbackIcon.className = 'fa-solid fa-triangle-exclamation text-incorrect text-xl';
+                feedbackTitle.innerText = "Correction Protocol";
+                feedbackTitle.className = 'font-bold text-lg font-display tracking-wide text-incorrect uppercase';
+            }
+
+            document.getElementById('feedback-text').innerHTML = `<strong class="text-white">Explanation:</strong> ${qData.explanation}`;
+            feedbackBox.classList.remove('hidden');
+            
+            // Scroll logic for smaller screens
+            setTimeout(() => {
+                feedbackBox.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+            }, 100);
+        }
+
+        function nextQuestion() {
+            playSound('click');
+            currentQuestion++;
+            if(currentQuestion < quizData.length) {
+                renderQuestion();
+            } else {
+                showResults();
+            }
+        }
+
+        function showResults() {
+            document.getElementById('screen-quiz').classList.add('hidden');
+            document.getElementById('screen-quiz').classList.remove('flex');
+            
+            const resScreen = document.getElementById('screen-results');
+            resScreen.classList.remove('hidden');
+            resScreen.classList.add('flex', 'fade-in');
+
+            document.getElementById('res-name').innerText = studentName;
+            document.getElementById('res-score').innerText = score;
+            
+            // Animate XP counting up
+            let currentXp = 0;
+            const xpDisplay = document.getElementById('res-xp');
+            const step = Math.max(1, Math.floor(xp / 30));
+            const xpInterval = setInterval(() => {
+                currentXp += step;
+                if(currentXp >= xp) {
+                    currentXp = xp;
+                    clearInterval(xpInterval);
+                }
+                xpDisplay.innerText = currentXp;
+            }, 30);
+
+            // Evaluation Text based on score
+            const evalText = document.getElementById('res-eval');
+            const icon = document.getElementById('result-icon');
+            
+            if(score === 15) {
+                evalText.innerText = "Flawless execution! Your command of C1 vocabulary, collocations, and complex rhetorical devices is absolute. The WOLF LABS system recognizes you as a Master of the Sweet Deception module.";
+                icon.className = 'fa-solid fa-crown text-8xl text-brand mb-6 drop-shadow-[0_0_40px_rgba(217,70,239,0.8)] pop-in';
+            } else if(score >= 12) {
+                evalText.innerText = "Outstanding performance. You have a very strong grasp of C1 concepts and advanced nuances. Review the minor errors to achieve absolute perfection.";
+                icon.className = 'fa-solid fa-shield-halved text-8xl text-accent mb-6 drop-shadow-[0_0_30px_rgba(6,182,212,0.6)] pop-in';
+            } else if(score >= 8) {
+                evalText.innerText = "Good effort, Agent. You understood the core concepts, but advanced collocations and nuances need more reinforcement. We recommend reviewing the Masterclass notes.";
+                icon.className = 'fa-solid fa-bullseye text-8xl text-gold mb-6 drop-shadow-[0_0_30px_rgba(251,191,36,0.6)] pop-in';
+            } else {
+                evalText.innerText = "Mission compromised. It seems the cognitive overload from the advanced vocabulary was too high. Return to the Masterclass, study the Lexical Framework, and try again.";
+                icon.className = 'fa-solid fa-triangle-exclamation text-8xl text-incorrect mb-6 drop-shadow-[0_0_30px_rgba(239,68,68,0.6)] pop-in';
+            }
+        }
+    </script>
+</body>
+</html>
